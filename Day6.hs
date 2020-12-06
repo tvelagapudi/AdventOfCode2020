@@ -1,12 +1,17 @@
-import Text.ParserCombinators.ReadP
-import Data.Char
+import Data.List (nub, intersect)
+import Data.List.Split (splitOn)
 
-parse :: String -> Int
-parse = seatID . map (fromEnum . (\c -> c == 'R' || c == 'B'))
+countAny :: String -> Int
+countAny = length . nub . filter (/= '\n')
+
+countAll :: String -> Int
+countAll = length . intersection . lines
+
+intersection :: Eq a => [[a]] -> [a]
+intersection = foldr1 intersect
 
 main :: IO ()
 main = do
-    input <- map parse <$> lines <$> readFile "Input/Day5Input.txt"
-    print $ maximum input
-    let allSeats = [8 * x + y | x <- [0..127], y <- [0..7]]
-    print $ findAdjacent (allSeats \\ input) input
+    input <- splitOn "\n\n" <$> readFile "Input/Day6Input.txt"
+    print . sum . map countAny $ input
+    print . sum . map countAll $ input
