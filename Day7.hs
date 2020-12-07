@@ -6,46 +6,36 @@ import qualified Data.Map.Strict as Map
 isCommaAlpha :: Char -> Bool
 isCommaAlpha = or . (<*>) [(== ','), isAlphaNum, (== ' ')] . pure
 
-data BagRules = Bag (Map.Map String [(Int, String)])
+type BagRules = Map.Map String [(Int, String)]
+
+newtype BagRule = Rule { getRule :: BagRules }
 
 parseName :: ReadP String
 parseName = (++) <$> munch1 isLetter <* skipSpaces <*> munch1 isLetter <* skipSpaces
 
-parseBag :: ReadP BagRules
-parseBag = fmap Bag $ Map.singleton <$> parseName <* skipSpaces <* string "bags contain" 
+parseBag :: ReadP BagRule
+parseBag = fmap Rule $ Map.singleton <$> parseName <* skipSpaces <* string "bags contain" 
     <*> (parseColors <$> munch1 isCommaAlpha) <* char '.'
 
-parseNotBag :: ReadP BagRules
-parseNotBag = fmap Bag $ (`Map.singleton` []) <$> parseName <* string "bags contain no other bags."
+parseNotBag :: ReadP BagRule
+parseNotBag = fmap Rule $ (`Map.singleton` []) <$> parseName <* string "bags contain no other bags."
 
 parseColors :: String -> [(Int, String)]
 parseColors str = zip (map (read . (!! 1)) parsed) (map (concat . drop 2) parsed) where 
     parsed = map (init . splitOn " ") . splitOn "," $ str
 
-instance Read BagRules where
+instance Read BagRule where
     readsPrec _ = readP_to_S $ parseNotBag <++ parseBag
 
-instance Semigroup BagRules where
-    (Bag a) <> (Bag b) = Bag (Map.union a b)
-
-instance Monoid BagRules where
-    mempty = Bag Map.empty
-
-(\/) :: BagRules -> String -> [(Int, String)]
-(\/) (Bag b) = (b Map.!)
-
-niceKeys :: BagRules -> [String]
-niceKeys (Bag b) = Map.keys b
-
 doesContain :: BagRules -> String -> String-> Bool
-doesContain bag color = or . map (or . (<*>) [(== color), doesContain bag color] . pure . snd) . (bag \/)
+doesContain bag color = or . map (or . (<*>) [(== color), doesContain bag color] . pure . snd) . (bag Map.!)
 
 numContain :: BagRules -> String -> Int
-numContain bag = sum . map (mul . fmap ((+ 1) . numContain bag)) . (bag \/) where
+numContain bag = sum . map (mul . fmap ((+ 1) . numContain bag)) . (bag Map.!) where
     mul (a, c) = a * c
 
 main :: IO ()
 main = do
-    input <- mconcat . map read <$> lines <$> readFile "Input/Day7Input.txt"
-    print . length . filter (== True) . map (doesContain input "shinygold") . niceKeys $ input
+    input <- Map.unions . map (getRule . read) . lines <$> readFile "Input/Day7Input.txt"
+    print . length . filter (== True) . map (doesContain input "shinygold") . Map.keys $ input
     print . flip numContain "shinygold" $ input
