@@ -1,5 +1,5 @@
 isSum :: Int -> [Int] -> Bool
-isSum val ls = or $ map (\(x,y) -> val == (x+y)) [(x, y) | x <- ls, y <- ls, (x /= y)]
+isSum val ls = or $ map (\(x,y) -> val == x + y) [(x, y) | x <- ls, y <- ls, (x /= y)]
 
 findError :: [Int] -> [Int] -> Int
 findError lstTF (n:ns)
@@ -10,14 +10,14 @@ findError lstTF _ = 0
 takeUntil :: Int -> [Int] -> [Int]
 takeUntil val (n:ns)
     | val - n < 0 = []
-    | otherwise = n : takeUntil (val - n) ns
+    | otherwise   = n : takeUntil (val - n) ns
 takeUntil _ _ = []
 
 encryptWeak :: Int -> [Int] -> Int
 encryptWeak val (n:ns)
     | val == sum chk && length chk > 1 = maximum chk + minimum chk
     | otherwise = encryptWeak val ns where
-        chk = takeUntil val (n:ns)
+        chk = takeUntil val $ n:ns
 encryptWeak _ _ = 0
 
 main :: IO ()
