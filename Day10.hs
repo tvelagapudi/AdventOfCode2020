@@ -14,13 +14,13 @@ numPaths as j
         case prev !? j of
             Nothing -> do
                 paths <- sequence [numPaths as j' | j' <- takeWhile (< j) as, j' >= j - 3]
-                put $ insert j (sum paths) lst
+                put $ insert j (sum paths) prev
                 pure . sum $ paths
             Just a -> pure a
 
 main :: IO ()
 main = do
-    input <- map read . lines <$> readFile "Input/Day10Input.txt" :: IO [Int]
+    input <- map read . lines <$> readFile "Input/Day10Input.txt"
     let phone = maximum input + 3
         adapters = [0] ++ sort (nub (input)) ++ [phone]
         f diff = length . filter (== diff) . giveDifferences 0 $ adapters
