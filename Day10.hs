@@ -10,13 +10,12 @@ numPaths :: [Int] -> Int -> State (Map Int Int) Int
 numPaths as j
     | j == 0 = pure 1
     | otherwise = do
-        lst <- get
-        case lst !? j of
+        prev <- get
+        case prev !? j of
             Nothing -> do
                 paths <- sequence [numPaths as j' | j' <- takeWhile (< j) as, j' >= j - 3]
-                let s = sum paths
-                put $ insert j s lst
-                pure s
+                put $ insert j (sum paths) lst
+                pure . sum $ paths
             Just a -> pure a
 
 main :: IO ()
