@@ -6,6 +6,9 @@ data Memory = Mem (Int, Int) deriving (Eq, Show)
 
 newtype Mask = Mask String deriving (Eq, Show)
 
+app :: ((Int, Int) -> c) -> Memory -> c
+app f (Mem x) = f x
+
 parseMask :: ReadP Mask
 parseMask = Mask <$
     string "mask = "
@@ -42,48 +45,45 @@ fromBinary :: String -> Int
 fromBinary (x:xs) = case x of
     '0' -> fromBinary xs
     '1' -> 2 ^ (length xs) + fromBinary xs
-    _ -> error (x:xs)
 fromBinary _ = 0
 
-genFunc :: String -> [String]
-genFunc s
+genBin :: String -> [String]
+genBin s
     | null val  = [s]
-    | otherwise = [take (head val) s ++ [x] ++ rest | x <- ['0', '1'], rest <- genFunc (drop (head val + 1) s)] where
-        val = elemIndices 'X' s
+    | otherwise = [take (head val) s ++ [x] ++ rest | x <- ['0', '1'], 
+        rest <- genBin (drop (head val + 1) s)] where
+            val = elemIndices 'X' s
 
-specialFunc :: String -> [Int]
-specialFunc str = map fromBinary . genFunc $ str
+sumChoices :: String -> [Int]
+sumChoices str = map fromBinary . genBin $ str
 
-func :: Mask -> Memory -> Memory
-func (Mask a) (Mem (b, c)) = Mem (b, fromBinary (zipWith f a large)) where
+mask :: Mask -> Memory -> Memory
+mask (Mask a) (Mem (b, c)) = Mem (b, fromBinary (zipWith f a large)) where
     large = replicate (length a - length bin) '0' ++ bin
     bin = toBinary c
     f 'X' y = y
     f z y = z
 
-func' :: Mask -> Memory -> [Memory]
-func' (Mask a) (Mem (b, c)) = map (Mem . flip (,) c) (specialFunc $ zipWith f a large) where
+maskV2 :: Mask -> Memory -> [Memory]
+maskV2 (Mask a) (Mem (b, c)) = map (Mem . flip (,) c) (sumChoices $ zipWith f a large) where
     large = replicate (length a - length bin) '0' ++ bin
     bin = toBinary b
     f '0' y = y
     f z y = z
 
-doThings :: (Mask, [Memory]) -> [Memory]
-doThings (a, b) = map (func a) b
+maskAll :: (Mask, [Memory]) -> [Memory]
+maskAll (a, b) = map (mask a) b
 
-doAltThings :: (Mask, [Memory]) -> [Memory]
-doAltThings (a, b) = concat $ map (func' a) b
-
-fst' :: Memory -> Int
-fst' (Mem (a,b)) = a
-
-snd' :: Memory -> Int
-snd' (Mem (a,b)) = b
+maskAllV2 :: (Mask, [Memory]) -> [Memory]
+maskAllV2 (a, b) = concat $ map (maskV2 a) b
 
 main :: IO ()
 main = do
     input <- lines <$> readFile "Input/Day14Input.txt"
-    let vals = concat . map (doThings . parse) . splitByMasks $ input
-        vals' = concat . map (doAltThings . parse) . splitByMasks $ input
-    print . sum . map (snd' . last) . groupBy (\x y -> fst' x == fst' y) . sortOn fst' $ vals
-    print . sum . map (snd' . last) . groupBy (\x y -> fst' x == fst' y) . sortOn fst' $ vals'
+    let vals = concat . map (maskAll . parse) . splitByMasks $ input
+        vals' = concat . map (maskAllV2 . parse) . splitByMasks $ input
+        fst' = app fst
+        snd' = app snd
+        match x y = fst' x == fst' y
+    print . sum . map (snd' . last) . groupBy match . sortOn fst' $ vals
+    print . sum . map (snd' . last) . groupBy match . sortOn fst' $ vals'
