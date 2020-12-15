@@ -1,5 +1,4 @@
 import Data.Map.Strict hiding (map, filter)
-import Data.List (find)
 import Data.Maybe (fromJust)
 
 type Record = Map Int Int
